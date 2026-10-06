@@ -76,6 +76,18 @@ func disk(dst *image.RGBA, cx, cy, rx, ry int, c color.Color, solid bool) {
 }
 
 func (g *Game) Render() *image.RGBA {
+	w, h := g.screenSize()
+	r := image.Rect(0, 0, w, h)
+	if g.frame == nil || g.frame.Bounds() != r {
+		g.frame = image.NewRGBA(r)
+	}
+	if g.Modern {
+		return g.renderModern()
+	}
+	return g.renderClassic()
+}
+
+func (g *Game) renderClassic() *image.RGBA {
 	dst := g.frame
 	fill(dst, dst.Bounds(), face)
 	g.normalize()

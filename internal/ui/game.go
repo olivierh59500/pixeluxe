@@ -1,5 +1,5 @@
-// Package ui implements Pixeluxe's Amiga-style desktop, using a software
-// framebuffer so all controls and picture pixels have integer edges.
+// Package ui implements Pixeluxe's modern and Classic desktop interfaces.
+// Picture pixels retain indexed colors and nearest-neighbor integer scaling.
 package ui
 
 import (
@@ -53,6 +53,8 @@ var toolNames = []string{"Dots", "Freehand", "Line", "Curve", "Fill", "Airbrush"
 var modeNames = []string{"Matte", "Color", "Replc", "Smear", "Shade", "Blend", "Cycle", "Smooth"}
 
 type Game struct {
+	Modern                                                     bool
+	PalettePage                                                int
 	Canvas                                                     *paint.Canvas
 	Spare                                                      *image.Paletted
 	FG, BG                                                     uint8
@@ -109,9 +111,9 @@ type Game struct {
 }
 
 func New() *Game {
-	g := &Game{Canvas: paint.New(320, 256, paint.DefaultPalette()), FG: 1, Tool: Freehand, BrushSize: 1, Zoom: 2, ShowTools: true, ShowCoords: true, ShowBar: true, FastFeedback: true, MultiCycle: true, GridSize: 8, Radial: 1, FontScale: 1, CycleLow: 16, CycleHigh: 31, CycleSpeed: 8, menu: -1, submenu: -1, menuHover: -1, frame: image.NewRGBA(image.Rect(0, 0, Width, Height))}
+	g := &Game{Modern: true, Canvas: paint.New(320, 256, paint.DefaultPalette()), FG: 1, Tool: Freehand, BrushSize: 1, Zoom: 2, ShowTools: true, ShowCoords: true, ShowBar: true, FastFeedback: true, MultiCycle: true, GridSize: 8, Radial: 1, FontScale: 1, CycleLow: 16, CycleHigh: 31, CycleSpeed: 8, menu: -1, submenu: -1, menuHover: -1, frame: image.NewRGBA(image.Rect(0, 0, Width, Height))}
 	g.Canvas.MarkSaved()
-	g.notice("Pixeluxe  -  Deluxe Paint II  |  Prefs > Keyboard Help")
+	g.notice("Ready to create · Open a picture or start painting")
 	return g
 }
 
@@ -122,6 +124,7 @@ func (g *Game) install(im *image.Paletted, path string) {
 	g.Canvas.MarkSaved()
 	g.OriginalPalette = append(color.Palette{}, im.Palette...)
 	g.Filename = path
+	g.PalettePage = 0
 	g.PanX = 0
 	g.PanY = 0
 	g.FG = uint8(min(1, len(im.Palette)-1))
@@ -142,6 +145,9 @@ func (g *Game) install(im *image.Paletted, path string) {
 
 func (g *Game) notice(s string) { g.Status = s; g.statusTicks = 240 }
 func (g *Game) viewport() image.Rectangle {
+	if g.Modern {
+		return g.modernViewport()
+	}
 	w := Width
 	if g.ShowTools {
 		w -= sidebarWidth
@@ -178,16 +184,40 @@ func (g *Game) zoomAt(z int, p image.Point) {
 	old := g.canvasPoint(p)
 	g.Zoom = max(1, min(32, z))
 	r := g.viewport()
-	g.PanX = old.X - (p.X-r.Min.X)/g.Zoom
-	g.PanY = old.Y - (p.Y-r.Min.Y)/g.Zoom
+	b := g.Canvas.Image.Bounds()
+	ox := r.Min.X + max(0, (r.Dx()-b.Dx()*g.Zoom)/2)
+	oy := r.Min.Y + max(0, (r.Dy()-b.Dy()*g.Zoom)/2)
+	g.PanX = old.X - int(math.Floor(float64(p.X-ox)/float64(g.Zoom)))
+	g.PanY = old.Y - int(math.Floor(float64(p.Y-oy)/float64(g.Zoom)))
 	g.clampPan()
 }
 
-func (g *Game) Layout(_, _ int) (int, int) { return Width, Height }
+func (g *Game) screenSize() (int, int) {
+	if g.Modern {
+		return modernWidth, modernHeight
+	}
+	return Width, Height
+}
+func (g *Game) setModern(enabled bool) {
+	g.cancelGesture()
+	g.Modern = enabled
+	g.menu, g.submenu = -1, -1
+	g.clampPan()
+	w, h := g.screenSize()
+	if !enabled {
+		w *= 2
+		h *= 2
+	}
+	ebiten.SetWindowSize(w, h)
+}
+func (g *Game) Layout(_, _ int) (int, int) { return g.screenSize() }
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.Render()
-	if g.display == nil {
-		g.display = ebiten.NewImage(Width, Height)
+	if g.display == nil || g.display.Bounds() != g.frame.Bounds() {
+		if g.display != nil {
+			g.display.Dispose()
+		}
+		g.display = ebiten.NewImage(g.frame.Bounds().Dx(), g.frame.Bounds().Dy())
 	}
 	g.display.WritePixels(g.frame.Pix)
 	screen.DrawImage(g.display, nil)
@@ -285,7 +315,10 @@ func (g *Game) Update() error {
 		}
 		g.zoomAt(z, g.pointer)
 	}
-	if (left || right) && g.ShowTools && g.pointer.In(image.Rect(Width-sidebarWidth, topHeight, Width, Height-bottomHeight)) {
+	if (left || right) && g.Modern && g.clickModern(g.pointer, right) {
+		return nil
+	}
+	if !g.Modern && (left || right) && g.ShowTools && g.pointer.In(image.Rect(Width-sidebarWidth, topHeight, Width, Height-bottomHeight)) {
 		g.clickSidebar(g.pointer, right)
 		return nil
 	}
@@ -326,6 +359,13 @@ func (g *Game) pick(p image.Point, bg bool) {
 		g.BG = g.Canvas.Image.ColorIndexAt(p.X, p.Y)
 	} else {
 		g.FG = g.Canvas.Image.ColorIndexAt(p.X, p.Y)
+	}
+	if g.Modern {
+		if bg {
+			g.PalettePage = int(g.BG) / 32
+		} else {
+			g.PalettePage = int(g.FG) / 32
+		}
 	}
 	g.notice(fmt.Sprintf("Color %d", g.FG))
 }

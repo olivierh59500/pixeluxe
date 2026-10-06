@@ -1,103 +1,111 @@
 # Pixeluxe
 
-Pixeluxe est un éditeur de pixel art en Go inspiré de **Deluxe Paint II sur Amiga**. Il reprend la barre Picture / Brush / Mode / Effects / Font / Prefs, la boîte à outils à droite et les images et fontes bitmap du disque fourni. Les opérations travaillent sur des pixels indexés et leur palette ; le programme Amiga n'est pas exécuté ni émulé.
+Pixeluxe is a pure Go pixel art editor inspired by **Deluxe Paint II on Amiga**, with a modern desktop interface. It preserves the Picture / Brush / Mode / Effects / Font / Prefs menus, drawing tools, and original pictures and bitmap fonts from the supplied disk. Editing operates on indexed pixels and their palette; the Amiga program is neither executed nor emulated.
 
-![Pixeluxe avec l'image Seascape originale](docs/pixeluxe.png)
+![Pixeluxe with the original Seascape picture](docs/pixeluxe.png)
 
-## Démarrer
+## Getting started
 
-Prérequis : **Go 1.25 ou ultérieur**. La fenêtre utilise **Ebitengine 2.10.2** ; la compilation de l'application de bureau s'effectue avec `CGO_ENABLED=0`, sans compilateur C. Le premier lancement télécharge les dépendances Go. Les exemples et les fontes sont intégrés au binaire.
+Requirements: **Go 1.25 or later**. The window uses **Ebitengine 2.10.2**; desktop builds use `CGO_ENABLED=0` and do not require a C compiler. The first build downloads the Go dependencies. Example pictures and fonts are embedded in the executable.
 
 ```sh
 CGO_ENABLED=0 go run .
 ```
 
-Pour construire l'exécutable puis ouvrir l'exemple original :
+Build the executable and open the original example:
 
 ```sh
 make build
 ./bin/pixeluxe -demo
 ```
 
-Sur macOS, créer et ouvrir le paquet d'application :
+On macOS, build and open the application bundle:
 
 ```sh
 make app
 open bin/Pixeluxe.app
 ```
 
-Au démarrage normal, la page mesure 320 × 256 pixels avec 32 couleurs. L'interface a une résolution logique de 640 × 512 ; la fenêtre est redimensionnable. `-scale 1`, `2` ou `3` règle sa taille initiale, et F11 active le plein écran.
+A new document starts at 320 × 256 pixels with 32 colors. The modern workspace opens at 1184 × 768: a left tool rail, top shortcuts and painting options, a centered canvas, and a right inspector for brushes, colors, palette, and document details. The default page fits at 200% zoom. Labels, contextual menus, and dialogs use smooth fonts; the artwork uses nearest-neighbor rendering so individual pixels stay sharp.
 
-## Ouvrir et enregistrer
-
-Utiliser **Picture > Load**, Ctrl/Cmd+O, déposer un fichier sur la fenêtre, ou donner un chemin au lancement :
+The window is resizable. `-scale 1`, `2`, or `3` sets its initial size; the modern interface defaults to `1`. F11 toggles full screen. **Prefs > Classic Interface** switches to the compact 640 × 512 remake layout. You can also launch it directly with `-classic`; Classic mode defaults to a window scale of `2`.
 
 ```sh
-./bin/pixeluxe -open dessin.iff
-./bin/pixeluxe dessin.png
+./bin/pixeluxe -classic -demo
 ```
 
-Lecture : IFF ILBM/PBM, PNG, GIF et JPEG. Les images indexées conservent leurs indices et leur palette ; les images en couleurs directes sont converties en une palette d'au plus 32 couleurs. Pour un GIF animé, seule la première image est importée. Les ILBM EHB sont pris en charge ; le mode HAM est refusé explicitement.
+[View the preserved Classic interface](docs/pixeluxe-classic.png).
 
-**Picture > Save / Save As** ou Ctrl/Cmd+S enregistre en IFF ILBM, PNG ou GIF selon l'extension. Sans extension, le dialogue ajoute `.iff`. Ctrl/Cmd+Shift+S ouvre « Save As ». Les dialogues affichent le répertoire, permettent de remonter avec **Up** et de saisir **Drawer** et **File**. « Save As » confirme le remplacement d'un fichier existant ; l'abandon d'une image modifiée demande aussi confirmation. **Picture > Examples** ouvre Seascape, StencilSet ou Reference Palette ; **Print to PDF** exporte l'image sur une page A4 dans `pixeluxe-print.pdf`. La commande `./bin/pixeluxe -demo -pdf dessin.pdf` exporte aussi un PDF sans ouvrir de fenêtre.
+## Opening and saving
 
-**Page Size** et **Screen Format** changent les dimensions et le nombre de couleurs en conservant les pixels depuis le coin supérieur gauche ; les parties dépassant une page réduite sont coupées. Les couleurs supprimées sont remappées vers la palette retenue. L'opération est annulable. Les fichiers IFF conservent leurs plages de cyclage CRNG, leur point de prise GRAB et leur rapport de pixel lors d'un enregistrement IFF.
+Use **Picture > Load**, Ctrl/Cmd+O, drag a file onto the window, or supply a path at startup:
 
-## Peindre
+```sh
+./bin/pixeluxe -open drawing.iff
+./bin/pixeluxe drawing.png
+```
 
-Dans la palette, clic gauche choisit la couleur de premier plan et clic droit la couleur de fond. Sur la page, ces boutons peignent respectivement avec ces couleurs. La pipette est accessible par `,` ou Alt+clic. Les menus acceptent le bouton droit maintenu avec sélection au relâchement, ainsi que le clic gauche.
+Supported input formats are IFF ILBM/PBM, PNG, GIF, and JPEG. Indexed pictures retain their indices and palette; truecolor pictures are converted to a palette of at most 32 colors. Animated GIFs import only their first frame. ILBM Extra Half-Brite is supported; HAM mode is explicitly rejected.
 
-Les outils comprennent dessin libre continu ou pointillé, droite, courbe, aérographe, remplissage et formes en contour ou pleines. Le clic droit sur une icône de forme choisit sa version pleine. Pour une courbe, tracer d'abord le segment, puis cliquer pour placer sa courbure. Pour un polygone, poser les sommets, puis terminer avec Entrée, clic droit ou clic sur le premier sommet. Shift contraint les lignes et les proportions des formes.
+**Picture > Save / Save As** or Ctrl/Cmd+S saves IFF ILBM, PNG, or GIF according to the filename extension. The dialog adds `.iff` when there is no extension. Ctrl/Cmd+Shift+S opens Save As. File dialogs show the current directory, provide **Up** navigation, and accept a directory and filename. Save As confirms replacement of an existing file; discarding a modified picture also requires confirmation. **Picture > Examples** opens Seascape, StencilSet, or Reference Palette. **Print to PDF** exports the image to an A4 page in `pixeluxe-print.pdf`. `./bin/pixeluxe -demo -pdf drawing.pdf` exports a PDF without opening a window.
 
-`b` puis un glissement rectangulaire capture une brosse : la couleur de fond devient transparente. **Brush > Load / Save** échange des brosses IFF ou PNG. **Original brushes** donne accès aux brosses Dolphin, Building et Pattern1 du disque, intégrées au binaire. Le panneau propose les dix brosses prédéfinies : quatre rondes, quatre carrées et deux pointillées. Le menu propose redimensionnement au plus proche voisin, retournements, rotation à 90° ou libre, cisaillement, courbure et projection en perspective. Les paramètres des transformations sont saisis dans des dialogues. Les remplissages, y compris les formes pleines, proposent couleur unie, motif de brosse et dégradés de plage avec ou sans tramage. Les contours utilisent la brosse, le mode et la symétrie sélectionnés.
+**Page Size** and **Screen Format** change the dimensions and color count while preserving pixels from the upper-left corner. Pixels beyond a smaller page are cropped. Removed colors are remapped to the retained palette. The operation supports undo. IFF saves preserve CRNG color-cycling ranges, GRAB brush handles, and pixel aspect ratios.
 
-Les huit modes Matte, Color, Replc, Smear, Shade, Blend, Cycle et Smooth sont présents. La grille peut attirer le curseur ; la symétrie propose miroirs horizontal/vertical et copies radiales. La page de réserve permet de copier, échanger et fusionner des images. **Effects > Stencil** crée un masque depuis les couleurs sélectionnées, le refait, l'inverse ou le désactive. Il charge et enregistre aussi le masque en IFF/PNG à deux couleurs. Les menus Picture, Brush et Stencil proposent Delete, avec confirmation avant suppression du fichier. **Background > Fix** mémorise l'image courante : le bouton droit et CLR restaurent ensuite ce fond sous les ajouts. **Lock FG** protège les zones peintes depuis sa fixation ; **Background > Off** rétablit l'effacement normal. L'historique des images et palettes offre jusqu'à 64 annulations, avec rétablissement.
+## Painting
 
-Tab anime la palette sans changer les indices des pixels. Les plages CRNG d'un IFF sont lues avec leur vitesse et leur sens ; **Prefs > MultiCycle** permet de les animer simultanément. **Color Ranges** règle la plage active utilisée pour les dégradés et le mode Cycle.
+Left-click a palette color to select the foreground; right-click to select the background. The same buttons paint with their respective colors on the canvas. Press `,` or Alt-click for the eyedropper. Menus accept ordinary left-click selection and the original right-button interaction: hold, select, and release.
 
-**Prefs > Fast FB** affiche les contours provisoires avec une brosse d'un pixel puis applique la brosse choisie au tracé final. **ExclBrush**, avec attraction à la grille activée, exclut la dernière colonne et la dernière ligne lors d'une capture pour éviter de doubler les bordures des motifs répétés.
+Tools include continuous and dotted freehand, straight lines, curves, airbrush, fill, and outlined or filled shapes. Right-click a shape tool to select its filled variant. For a curve, draw the initial segment, then click to set its curvature. For a polygon, place vertices and finish with Enter, right-click, or a click on the first vertex. Shift constrains lines and shape proportions.
 
-Pour le texte, sélectionner `t`, cliquer puis saisir ; Entrée pose le texte et Échap annule. **Font** donne accès aux 14 fontes originales extraites : ruby, opal, sapphire, diamond, garnet, emerald et topaz, dans leurs tailles disque. Gras, italique, soulignement et agrandissement entier sont disponibles.
+Press `b` and drag a rectangle to capture a brush; the background color becomes transparent. **Brush > Load / Save** exchanges IFF or PNG brushes. **Original brushes** provides Dolphin, Building, and Pattern1 from the disk, embedded in the executable. The panel offers ten preset brushes: four round, four square, and two dotted. Brush transformations include nearest-neighbor resizing, flips, 90-degree and arbitrary rotation, shear, bend, and perspective projection. Transformation parameters are entered in dialogs. Fills, including filled shapes, support solid color, brush patterns, and color-range gradients with optional dithering. Outlines use the selected brush, mode, and symmetry.
 
-## Raccourcis
+All eight modes are available: Matte, Color, Replc, Smear, Shade, Blend, Cycle, and Smooth. Grid snapping and horizontal, vertical, and radial symmetry are supported. The spare page can copy, swap, and merge pictures. **Effects > Stencil** creates a mask from selected colors, remakes it, reverses it, or disables it; masks can also be loaded and saved as two-color IFF/PNG files. Picture, Brush, and Stencil menus offer Delete, with confirmation before deleting a file. **Background > Fix** remembers the current picture; right-button painting and CLR then restore that background beneath additions. **Lock FG** protects areas painted since the background was fixed. **Background > Off** restores ordinary erasing. Picture and palette history supports up to 64 undo steps, with redo.
 
-Les lettres majuscules correspondent à Shift. Cette table décrit le comportement actuel de Pixeluxe ; les différences avec les commandes Amiga sont précisées ensuite.
+Tab animates the palette without changing pixel indices. IFF CRNG ranges retain their rate and direction; **Prefs > MultiCycle** animates multiple ranges simultaneously. **Color Ranges** sets the active range used by gradients and Cycle mode.
 
-| Touche | Action |
+**Prefs > Fast FB** draws temporary outlines with a one-pixel brush and uses the selected brush for the completed stroke. With grid snapping enabled, **ExclBrush** excludes the final column and row from captures to avoid duplicated borders in repeating patterns.
+
+For text, select `t`, click, and type; Enter stamps the text and Escape cancels. **Font** provides the 14 original extracted fonts: ruby, opal, sapphire, diamond, garnet, emerald, and topaz, at their disk sizes. Bold, italic, underline, and integer scaling are available.
+
+## Keyboard shortcuts
+
+Uppercase letters mean Shift. This table describes Pixeluxe's current behavior; differences from the Amiga commands are explained below.
+
+| Key | Action |
 |---|---|
-| `s`, `d`, `D` | Dessin pointillé, continu, continu avec brosse d'un pixel |
-| `v`, `q`, `f`, `F` | Droite, courbe, remplissage, réglages de remplissage |
-| `r` / `R`, `c` / `C`, `e` / `E` | Rectangle, cercle, ellipse : contour / plein |
-| `b`, `B`, `t` | Capturer une brosse, reprendre la dernière brosse, texte |
-| `u`, `U`, `K` | Annuler, rétablir, effacer avec la couleur de fond |
-| `p`, `j`, Tab | Palette, échanger la page de réserve, activer/désactiver le cyclage |
-| `x`, `y`, `z`, `Z`, `h`, `H` | Retourner X/Y, rotation 90°, taille de brosse, moitié, double |
+| `s`, `d`, `D` | Dotted, continuous, and one-pixel continuous freehand |
+| `v`, `q`, `f`, `F` | Line, curve, fill, fill settings |
+| `r` / `R`, `c` / `C`, `e` / `E` | Rectangle, circle, ellipse: outlined / filled |
+| `b`, `B`, `t` | Capture a brush, restore the previous brush, text |
+| `u`, `U`, `K` | Undo, redo, clear with the background color |
+| `p`, `j`, Tab | Palette, swap spare page, toggle color cycling |
+| `x`, `y`, `z`, `Z`, `h`, `H` | Flip X/Y, rotate 90°, brush size, halve, double |
 | F1…F8 | Matte, Color, Replc, Smear, Shade, Blend, Cycle, Smooth |
-| `g`, `G`, `/` | Attraction à la grille, réglages de grille, miroir horizontal |
-| `m`, `<`, `>` | Outil loupe, réduire/agrandir le zoom |
-| `,`, `.`, `-`, `=` | Pipette, brosse d'un pixel, réduire/agrandir une brosse prédéfinie |
-| `[`, `]` | Couleur précédente/suivante dans la palette entière |
-| `n`, flèches | Centrer la page, déplacer la vue |
-| `S`, F9, F10, F11 | Vue sans outils avec zoom remis à 1, masquer la barre, masquer barre et outils, plein écran |
-| `a` | Répéter la dernière commande de menu |
-| Échap, Espace | Annuler le geste en cours ; Espace+glissement déplace la vue |
-| Entrée | Terminer le polygone ou poser le texte |
+| `g`, `G`, `/` | Grid snapping, grid settings, horizontal mirror |
+| `m`, `<`, `>` | Magnifier, zoom out/in |
+| `,`, `.`, `-`, `=` | Eyedropper, one-pixel brush, smaller/larger preset brush |
+| `[`, `]` | Previous/next color in the entire palette |
+| `n`, arrow keys | Center the page, pan the view |
+| `S`, F9, F10, F11 | Canvas view at 1×, hide menu bar, hide menus and tools, full screen |
+| `a` | Repeat the last menu command |
+| Escape, Space | Cancel the current gesture; Space-drag pans the view |
+| Enter | Finish a polygon or stamp text |
 
-Extensions de bureau : Ctrl/Cmd+N/O/S pour nouveau/ouvrir/enregistrer, Ctrl/Cmd+Q pour quitter, Ctrl/Cmd+Z pour annuler, Ctrl/Cmd+Shift+Z ou Ctrl/Cmd+Y pour rétablir. La molette zoome ; le bouton central ou Espace+glissement déplace la vue. L'aide est aussi dans **Prefs > Keyboard Help**.
+Desktop shortcuts: Ctrl/Cmd+N/O/S for new/open/save, Ctrl/Cmd+Q to quit, Ctrl/Cmd+Z to undo, and Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y to redo. The mouse wheel zooms; the middle button or Space-drag pans. Help is also available in **Prefs > Keyboard Help**.
 
-## Fidélité et limites
+## Compatibility and limits
 
-Pixeluxe est une réimplémentation fonctionnelle, avec des adaptations de l'interface et des algorithmes ; la parité complète avec Deluxe Paint II 2.0P n'est pas revendiquée.
+Pixeluxe is a functional reimplementation with adapted interface and algorithms. It does not claim complete parity with Deluxe Paint II 2.0P.
 
-- Les dialogues de fichiers, palette et paramètres reprennent le style Amiga, avec des interactions et une disposition propres à Pixeluxe. Les titres des menus restent visibles au repos. `G` ouvre les réglages au lieu d'aligner la grille sur le pinceau, `n` centre la page et `S` ne reproduit pas l'aperçu réduit de l'original.
-- L'éditeur de plages règle une plage active ; il ne reprend pas le panneau original C1–C4 avec tous ses réglages. MultiCycle anime plusieurs plages à l'affichage, sans garantir le comportement original du mode Cycle sur les brosses multicolores. Les métadonnées IFF de perspective et l'ensemble des chunks propriétaires ne sont pas conservés. Les exports PNG/GIF ne transportent pas les métadonnées Amiga.
-- Be Square et l'intégration Workbench restent absents ; l'impression passe par un PDF et ne reprend pas les pilotes et réglages d'imprimante Amiga.
-- La perspective transforme directement une brosse avec des angles X/Y/Z. Elle ne reprend pas la grille interactive au pavé numérique, le centre de perspective, FillScreen ou les options d'anticrénelage de Deluxe Paint. Smear, Shade, Blend et Smooth utilisent des algorithmes adaptés ; leur résultat n'est pas garanti identique au logiciel Amiga.
-- La fonte système Topaz 8 de la ROM n'est pas présente sur le disque. L'interface utilise une fonte compacte de remplacement ; les 14 fontes de texte proviennent réellement de l'ADF. La palette initiale de Pixeluxe suit la grille RGB 12 bits Amiga, mais n'a pas été confirmée comme la palette exacte au démarrage de cette version.
+- The modern interface and dialogs use Pixeluxe's own layout while preserving the painting commands. Menu titles remain visible when idle. `G` opens grid settings instead of aligning the grid to the brush; `n` centers the page; `S` does not reproduce the original reduced page preview.
+- The range editor sets one active range rather than reproducing the original C1–C4 panel and every control. MultiCycle animates several display ranges without guaranteeing original Cycle-mode behavior on multicolor brushes. IFF perspective metadata and all proprietary chunks are not retained. PNG/GIF exports do not carry Amiga metadata.
+- Be Square and Workbench integration are absent. Printing uses PDF instead of Amiga printer drivers and settings.
+- Perspective transforms the brush directly with X/Y/Z angles. It does not reproduce the interactive numeric-keypad grid, perspective center, FillScreen, or Deluxe Paint antialiasing options. Smear, Shade, Blend, and Smooth use adapted algorithms and may differ from the Amiga results.
+- The ROM's Topaz 8 system font is absent from the disk. The modern interface uses embedded Go fonts; Classic mode uses a compact bitmap replacement. The 14 drawing fonts come from the ADF. Pixeluxe's initial palette follows the Amiga 12-bit RGB grid but has not been confirmed as this version's exact startup palette.
 
-Le disque d'origine reste dans [`previous/`](previous/). L'extraction, les faits confirmés, les palettes, les planches de fontes et les limites de la recherche sont documentés dans [`reference/DELUXE_PAINT_II.md`](reference/DELUXE_PAINT_II.md), avec le [manuel primaire Electronic Arts](https://d1yx3ys82bpsa0.cloudfront.net/atchm/documents/DeluxePaint_II_manual.pdf).
+The original disk remains in [`previous/`](previous/). Extraction, confirmed facts, palettes, font specimens, and research limits are documented in [`reference/DELUXE_PAINT_II.md`](reference/DELUXE_PAINT_II.md), alongside the [primary Electronic Arts manual](https://d1yx3ys82bpsa0.cloudfront.net/atchm/documents/DeluxePaint_II_manual.pdf). Derived reference extracts and downloaded manuals are excluded from Git; embedded runtime assets and the source ADF are tracked.
 
-## Vérifier et produire une capture
+## Validation and screenshots
 
 ```sh
 make test
@@ -105,12 +113,16 @@ make check
 make preview
 ```
 
-`make test` exécute les tests Go avec CGO désactivé ; `make check` ajoute `go vet`. Les vérifications couvrent notamment formats indexés, transparence, données malformées, transformations, historique, fontes et dialogues. `make preview` écrit le rendu de démonstration dans [`docs/pixeluxe.png`](docs/pixeluxe.png), sans ouvrir de fenêtre.
+`make test` runs the Go tests with CGO disabled; `make check` also runs `go vet`. Coverage includes indexed formats, transparency, malformed input, transformations, history, fonts, and dialogs. `make preview` writes the demo rendering to [`docs/pixeluxe.png`](docs/pixeluxe.png) without opening a window.
 
-Pour vérifier aussi l'ouverture de la fenêtre et la boucle Ebitengine pendant 120 images :
+To check the native window and Ebitengine loop over 120 frames:
 
 ```sh
 ./bin/pixeluxe -demo -smoke 120 -capture /tmp/pixeluxe-smoke.png
 ```
 
-Le programme quitte automatiquement après la capture. Les tests du moteur sont distincts de cette vérification de bureau. Un lancement natif de 120 images a également produit [`docs/desktop-smoke.png`](docs/desktop-smoke.png).
+The program exits automatically after capture. Engine tests are separate from this desktop check. [`docs/desktop-smoke.png`](docs/desktop-smoke.png) contains the latest captured native run.
+
+## Local Git workflow
+
+The local `main` branch records the original remake before the interface changes. Source comments, documentation, UI labels, and commit messages use English. Development conventions are recorded in [`AGENTS.md`](AGENTS.md). Generated binaries and app bundles remain under ignored `bin/`; there is no configured remote.

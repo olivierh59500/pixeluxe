@@ -4,3 +4,16 @@
 /pixeluxe-print.pdf
 /untitled.iff
 /untitled.png
+
+# Local reference extracts can be reproduced from the tracked source disk.
+/reference/adf/
+/reference/previews/
+/reference/asset-manifest.json
+/reference/dpaint-strings.txt
+/reference/fonts.json
+/reference/manual-toolbox.png
+/reference/DeluxePaint_II_manual.pdf
+
+# Desktop metadata and local temporary files.
+.DS_Store
+*.tmp

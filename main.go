@@ -35,7 +35,8 @@ func main() {
 	pdf := flag.String("pdf", "", "export the picture to an A4 PDF without opening a window")
 	smoke := flag.Int("smoke", 0, "run this many frames, then exit (desktop smoke test)")
 	capture := flag.String("capture", "", "write a screenshot at the end of a smoke test")
-	scale := flag.Int("scale", 2, "initial desktop window scale (1 to 3)")
+	scale := flag.Int("scale", 0, "window scale (1 to 3; default: modern 1, Classic 2)")
+	classic := flag.Bool("classic", false, "use the original Amiga-style interface")
 	flag.Parse()
 	fontData, err := assets.Files.ReadFile("fonts.json")
 	if err != nil {
@@ -46,6 +47,7 @@ func main() {
 	}
 	ui.InstallFontMenu()
 	g := ui.New()
+	g.Modern = !*classic
 	g.DemoFS, _ = fs.Sub(assets.Files, "pictures")
 	g.BrushFS, _ = fs.Sub(assets.Files, "brushes")
 	if *demo {
@@ -80,10 +82,19 @@ func main() {
 	if *capture != "" {
 		g.OnSmoke = func(im *image.RGBA) error { return writePNG(*capture, im) }
 	}
-	s := max(1, min(3, *scale))
-	ebiten.SetWindowSize(ui.Width*s, ui.Height*s)
+	s := *scale
+	if s == 0 {
+		if *classic {
+			s = 2
+		} else {
+			s = 1
+		}
+	}
+	s = max(1, min(3, s))
+	w, h := g.Layout(0, 0)
+	ebiten.SetWindowSize(w*s, h*s)
 	ebiten.SetWindowSizeLimits(640, 512, -1, -1)
-	ebiten.SetWindowTitle("Pixeluxe — Deluxe Paint II in Go")
+	ebiten.SetWindowTitle("Pixeluxe — Pixel Art Studio")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetScreenFilterEnabled(false)
 	ebiten.SetWindowClosingHandled(true)

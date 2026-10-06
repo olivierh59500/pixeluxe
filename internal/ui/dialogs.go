@@ -17,8 +17,8 @@ import (
 	"pixeluxe/internal/paint"
 )
 
-// Dialog is an Amiga-style modal requester. It is rendered into the same
-// software framebuffer as the painting tools and uses no native widgets.
+// Dialog is a modal requester rendered into the same software framebuffer
+// as the painting tools and uses no native widgets.
 type Dialog struct {
 	kind, title, body, err string
 	rect                   image.Rectangle
@@ -36,6 +36,8 @@ type Dialog struct {
 	delete, stencil        bool
 	lastClick, lastFrame   int
 	palettePage, slider    int
+	modern                 bool
+	sourceWidth            int
 }
 
 type dialogField struct {
@@ -59,13 +61,69 @@ type dialogFile struct {
 
 func newRequester(kind, title string, w, h int) *Dialog {
 	x, y := (Width-w)/2, (Height-h)/2
-	return &Dialog{kind: kind, title: title, rect: image.Rect(x, y, x+w, y+h), active: -1, selected: -1, lastClick: -1, slider: -1}
+	return &Dialog{kind: kind, title: title, rect: image.Rect(x, y, x+w, y+h), active: -1, selected: -1, lastClick: -1, slider: -1, sourceWidth: w}
 }
 
 func (g *Game) openRequester(d *Dialog) {
 	g.cancelGesture()
 	g.menu, g.submenu = -1, -1
+	if g.Modern && !d.modern {
+		old := d.rect
+		if d.sourceWidth == 0 {
+			d.sourceWidth = old.Dx()
+		}
+		w, h := g.screenSize()
+		d.modern = true
+		x, y := (w-old.Dx()*3/2)/2, (h-old.Dy()*3/2)/2
+		d.rect = image.Rect(x, y, x+old.Dx()*3/2, y+old.Dy()*3/2)
+		for i := range d.fields {
+			d.fields[i].rect = d.localRect(d.fields[i].rect.Sub(old.Min))
+		}
+		for i := range d.buttons {
+			d.buttons[i].rect = d.localRect(d.buttons[i].rect.Sub(old.Min))
+		}
+		if !d.list.Empty() {
+			d.list = d.localRect(d.list.Sub(old.Min))
+		}
+	}
 	g.dialog = d
+}
+
+func (d *Dialog) localRect(r image.Rectangle) image.Rectangle {
+	if d.modern {
+		r = image.Rect(r.Min.X*3/2, r.Min.Y*3/2, r.Max.X*3/2, r.Max.Y*3/2)
+	}
+	return r.Add(d.rect.Min)
+}
+
+func (d *Dialog) localPoint(x, y int) image.Point {
+	return d.localRect(image.Rect(x, y, x, y)).Min
+}
+
+func (d *Dialog) listRowHeight() int {
+	if d.modern {
+		return 24
+	}
+	return 16
+}
+
+func (d *Dialog) listScrollbarWidth() int {
+	if d.modern {
+		return 20
+	}
+	return 16
+}
+
+func (d *Dialog) listIndexAt(p image.Point) int {
+	if !p.In(d.list) || p.X >= d.list.Max.X-d.listScrollbarWidth() || p.Y < d.list.Min.Y+2 {
+		return -1
+	}
+	row := (p.Y - d.list.Min.Y - 2) / d.listRowHeight()
+	index := d.scroll + row
+	if row >= dialogListRows(d) || index >= d.itemCount() {
+		return -1
+	}
+	return index
 }
 
 func (d *Dialog) addField(label, value string, y int, number bool) {
@@ -743,7 +801,7 @@ func (g *Game) chooseDialog(title string, entries []string, onChoose func(int)) 
 	g.openRequester(d)
 }
 
-func dialogListRows(d *Dialog) int { return max(1, (d.list.Dy()-4)/16) }
+func dialogListRows(d *Dialog) int { return max(1, (d.list.Dy()-4)/d.listRowHeight()) }
 
 func (d *Dialog) itemCount() int {
 	if d.kind == "file" {
@@ -854,15 +912,13 @@ func (g *Game) updateDialog() {
 		if g.pointer.In(f.rect) {
 			d.active = i
 			f.selected = false
-			visible := max(1, (f.rect.Dx()-10)/6)
-			start := max(0, f.cursor-visible+1)
-			f.cursor = min(len([]rune(f.value)), start+max(0, (g.pointer.X-f.rect.Min.X-5)/6))
+			f.cursor = d.fieldCursorAt(f, g.pointer.X)
 			return
 		}
 	}
 	if !d.list.Empty() && g.pointer.In(d.list) {
 		d.active = -1
-		if g.pointer.X >= d.list.Max.X-16 {
+		if g.pointer.X >= d.list.Max.X-d.listScrollbarWidth() {
 			if g.pointer.Y < d.list.Min.Y+18 {
 				d.scroll = max(0, d.scroll-1)
 			} else if g.pointer.Y >= d.list.Max.Y-18 {
@@ -873,7 +929,7 @@ func (g *Game) updateDialog() {
 			}
 			return
 		}
-		index := d.scroll + (g.pointer.Y-d.list.Min.Y-2)/16
+		index := d.listIndexAt(g.pointer)
 		if index < 0 || index >= d.itemCount() {
 			return
 		}
@@ -892,6 +948,43 @@ func (g *Game) updateDialog() {
 		}
 		d.lastClick, d.lastFrame = index, g.Frames
 	}
+}
+
+func (d *Dialog) fieldWindow(f *dialogField) (chars []rune, start, end int) {
+	chars = []rune(f.value)
+	f.cursor = max(0, min(f.cursor, len(chars)))
+	if !d.modern {
+		visible := max(1, (f.rect.Dx()-10)/6)
+		start = max(0, f.cursor-visible+1)
+		return chars, start, min(len(chars), start+visible)
+	}
+	width := max(1, f.rect.Dx()-20)
+	start = f.cursor
+	for start > 0 && modernTextWidth(string(chars[start-1:f.cursor]), 13) <= width-10 {
+		start--
+	}
+	end = f.cursor
+	for end < len(chars) && modernTextWidth(string(chars[start:end+1]), 13) <= width {
+		end++
+	}
+	return chars, start, end
+}
+
+func (d *Dialog) fieldCursorAt(f *dialogField, x int) int {
+	chars, start, end := d.fieldWindow(f)
+	if !d.modern {
+		return min(len(chars), start+max(0, (x-f.rect.Min.X-5)/6))
+	}
+	x -= f.rect.Min.X + 10
+	lastWidth := 0
+	for i := start; i < end; i++ {
+		width := modernTextWidth(string(chars[start:i+1]), 13)
+		if x < (lastWidth+width)/2 {
+			return i
+		}
+		lastWidth = width
+	}
+	return end
 }
 
 func updateDialogField(f *dialogField) {
@@ -948,38 +1041,26 @@ func updateDialogField(f *dialogField) {
 }
 
 func paletteSwatch(d *Dialog, index int) image.Rectangle {
-	x := d.rect.Min.X + 37 + index%8*48
-	y := d.rect.Min.Y + 46 + index/8*25
-	return image.Rect(x, y, x+45, y+22)
+	x := 37 + index%8*48
+	y := 46 + index/8*25
+	return d.localRect(image.Rect(x, y, x+45, y+22))
 }
 
 func paletteSlider(d *Dialog, channel int) image.Rectangle {
-	return image.Rect(d.rect.Min.X+84, d.rect.Min.Y+184+channel*30, d.rect.Max.X-70, d.rect.Min.Y+202+channel*30)
+	w := d.sourceWidth
+	if w == 0 {
+		w = d.rect.Dx()
+	}
+	return d.localRect(image.Rect(84, 184+channel*30, w-70, 202+channel*30))
+}
+
+func stencilCheckbox(d *Dialog) image.Rectangle {
+	return d.localRect(image.Rect(37, 184, 62, 206))
 }
 
 func (g *Game) updatePaletteRequester(d *Dialog) {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		for i := 0; i < 32; i++ {
-			index := d.palettePage*32 + i
-			if index < len(g.Canvas.Image.Palette) && g.pointer.In(paletteSwatch(d, i)) {
-				if d.kind == "stencil" {
-					g.Canvas.Stencil[index] = !g.Canvas.Stencil[index]
-				} else {
-					g.FG = uint8(index)
-				}
-			}
-		}
-		if d.kind == "stencil" {
-			if g.pointer.In(image.Rect(d.rect.Min.X+37, d.rect.Min.Y+184, d.rect.Min.X+62, d.rect.Min.Y+206)) {
-				g.Canvas.StencilEnabled = !g.Canvas.StencilEnabled
-			}
-			return
-		}
-		for channel := 0; channel < 3; channel++ {
-			if g.pointer.In(paletteSlider(d, channel)) {
-				d.slider = channel
-			}
-		}
+		g.palettePointerDown(d, g.pointer)
 	}
 	if d.kind == "stencil" {
 		return
@@ -988,18 +1069,50 @@ func (g *Game) updatePaletteRequester(d *Dialog) {
 		d.slider = -1
 	}
 	if d.slider >= 0 {
-		r := paletteSlider(d, d.slider)
-		value := max(0, min(15, (g.pointer.X-r.Min.X)*15/max(1, r.Dx()-1)))
-		cr, cg, cb, _ := g.Canvas.Image.Palette[g.FG].RGBA()
-		channels := [3]uint8{uint8(cr >> 8), uint8(cg >> 8), uint8(cb >> 8)}
-		channels[d.slider] = uint8(value * 17)
-		g.Canvas.Image.Palette[g.FG] = color.RGBA{channels[0], channels[1], channels[2], 255}
+		g.applyPaletteSlider(d, g.pointer)
 	}
+}
+
+func (g *Game) palettePointerDown(d *Dialog, p image.Point) {
+	for i := 0; i < 32; i++ {
+		index := d.palettePage*32 + i
+		if index < len(g.Canvas.Image.Palette) && p.In(paletteSwatch(d, i)) {
+			if d.kind == "stencil" {
+				g.Canvas.Stencil[index] = !g.Canvas.Stencil[index]
+			} else {
+				g.FG = uint8(index)
+			}
+		}
+	}
+	if d.kind == "stencil" {
+		if p.In(stencilCheckbox(d)) {
+			g.Canvas.StencilEnabled = !g.Canvas.StencilEnabled
+		}
+		return
+	}
+	for channel := 0; channel < 3; channel++ {
+		if p.In(paletteSlider(d, channel)) {
+			d.slider = channel
+		}
+	}
+}
+
+func (g *Game) applyPaletteSlider(d *Dialog, p image.Point) {
+	r := paletteSlider(d, d.slider)
+	value := max(0, min(15, (p.X-r.Min.X)*15/max(1, r.Dx()-1)))
+	cr, cg, cb, _ := g.Canvas.Image.Palette[g.FG].RGBA()
+	channels := [3]uint8{uint8(cr >> 8), uint8(cg >> 8), uint8(cb >> 8)}
+	channels[d.slider] = uint8(value * 17)
+	g.Canvas.Image.Palette[g.FG] = color.RGBA{channels[0], channels[1], channels[2], 255}
 }
 
 func (g *Game) drawDialog(dst *image.RGBA) {
 	d := g.dialog
 	if d == nil {
+		return
+	}
+	if d.modern {
+		g.drawModernDialog(dst)
 		return
 	}
 	// Dithered shadows echo the original requesters while keeping the picture visible.
@@ -1142,7 +1255,7 @@ func (g *Game) drawPaletteRequester(dst *image.RGBA, d *Dialog) {
 	}
 	if d.kind == "stencil" {
 		text(dst, "Click colors to protect their pixels from drawing.", d.rect.Min.X+26, d.rect.Min.Y+158, ink)
-		checkbox := image.Rect(d.rect.Min.X+37, d.rect.Min.Y+184, d.rect.Min.X+62, d.rect.Min.Y+206)
+		checkbox := stencilCheckbox(d)
 		fill(dst, checkbox, paper)
 		bevel(dst, checkbox, true)
 		if g.Canvas.StencilEnabled {

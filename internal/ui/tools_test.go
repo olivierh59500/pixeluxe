@@ -140,7 +140,8 @@ func TestToolCancelRestoresGestureWithoutHistory(t *testing.T) {
 			if g.Canvas.Dirty() || g.Canvas.Undo() || g.dragging || g.typing || g.preview != nil || g.base != nil || len(g.poly) != 0 || g.curveEnd != nil {
 				t.Fatal("Cancel left document changes, history or active gesture state")
 			}
-			if g.Render().Bounds() != image.Rect(0, 0, Width, Height) {
+			w, h := g.screenSize()
+			if g.Render().Bounds() != image.Rect(0, 0, w, h) {
 				t.Fatal("cancelled gesture cannot render a desktop frame")
 			}
 		})

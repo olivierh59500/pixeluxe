@@ -9,6 +9,7 @@ import (
 
 func (g *Game) normalize() {
 	n := len(g.Canvas.Image.Palette)
+	g.PalettePage = max(0, min(g.PalettePage, (n-1)/32))
 	g.FG = uint8(min(int(g.FG), n-1))
 	g.BG = uint8(min(int(g.BG), n-1))
 	g.CycleLow = max(0, min(g.CycleLow, n-1))

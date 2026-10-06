@@ -55,7 +55,7 @@ var menus = []Menu{
 		item("Perspective...", "", "perspective"), item("Fill Settings...", "F", "fill-settings"),
 	}},
 	{"Font", []MenuItem{item("Topaz 8", "", "font-"), item("Size...", "", "font-size"), branch("Style", item("Plain", "", "font-plain"), item("Bold", "", "font-bold"), item("Italic", "", "font-italic"), item("Underline", "", "font-underline"))}},
-	{"Prefs", []MenuItem{item("Coords", "", "coords"), item("Fast FB", "", "fast-feedback"), item("ExclBrush", "", "exclude-brush"), item("MultiCycle", "", "multicycle"), item("Grid...", "G", "grid-settings"), item("Show Grid", "", "show-grid"), item("Symmetry...", "/", "symmetry-settings"), item("Full Screen", "F11", "fullscreen"), item("Hide / Show Toolbox", "F10", "show-tools"), item("Keyboard Help...", "", "help")}},
+	{"Prefs", []MenuItem{item("Coords", "", "coords"), item("Fast FB", "", "fast-feedback"), item("ExclBrush", "", "exclude-brush"), item("MultiCycle", "", "multicycle"), item("Grid...", "G", "grid-settings"), item("Show Grid", "", "show-grid"), item("Symmetry...", "/", "symmetry-settings"), item("Full Screen", "F11", "fullscreen"), item("Hide / Show Toolbox", "F10", "show-tools"), item("Classic Interface", "", "interface"), item("Keyboard Help...", "", "help")}},
 }
 
 func InstallFontMenu() {
@@ -77,28 +77,67 @@ func menuWidth(i int) int { return len(menus[i].Title)*12 + 8 }
 const menuPanelWidth = 220
 const menuRowHeight = 22
 
+func (g *Game) menuTitleRect(i int) image.Rectangle {
+	if !g.Modern {
+		return image.Rect(menuX(i), 0, menuX(i)+menuWidth(i), topHeight)
+	}
+	x := 76
+	for j := 0; j < i; j++ {
+		x += modernTextWidth(menus[j].Title, 13) + 24
+	}
+	return image.Rect(x, modernHeaderHeight, x+modernTextWidth(menus[i].Title, 13)+24, modernHeaderHeight+modernMenuHeight)
+}
+
+func (g *Game) menuDimensions() (width, rowHeight, padding int) {
+	if g.Modern {
+		return 260, 28, 6
+	}
+	return menuPanelWidth, menuRowHeight, 2
+}
+
 func (g *Game) menuRect() image.Rectangle {
-	x := min(menuX(g.menu), Width-menuPanelWidth)
-	return image.Rect(x, topHeight, x+menuPanelWidth, topHeight+len(menus[g.menu].Items)*menuRowHeight+4)
+	w, rowHeight, padding := g.menuDimensions()
+	screenWidth, _ := g.screenSize()
+	title := g.menuTitleRect(g.menu)
+	x := min(title.Min.X, screenWidth-w)
+	return image.Rect(x, title.Max.Y, x+w, title.Max.Y+len(menus[g.menu].Items)*rowHeight+padding*2)
 }
 func (g *Game) subRect() image.Rectangle {
 	r := g.menuRect()
 	items := menus[g.menu].Items[g.submenu].Children
+	w, rowHeight, padding := g.menuDimensions()
+	screenWidth, screenHeight := g.screenSize()
 	x := r.Max.X
-	if x+menuPanelWidth > Width {
-		x = r.Min.X - menuPanelWidth
+	if x+w > screenWidth {
+		x = r.Min.X - w
 	}
-	y := min(topHeight+g.submenu*menuRowHeight, Height-bottomHeight-len(items)*menuRowHeight-4)
-	return image.Rect(x, y, x+menuPanelWidth, y+len(items)*menuRowHeight+4)
+	footer := bottomHeight
+	if g.Modern {
+		footer = modernFooterHeight
+	}
+	y := min(r.Min.Y+g.submenu*rowHeight, screenHeight-footer-len(items)*rowHeight-padding*2)
+	return image.Rect(x, y, x+w, y+len(items)*rowHeight+padding*2)
+}
+
+func (g *Game) menuRowAt(r image.Rectangle, p image.Point, count int) int {
+	_, rowHeight, padding := g.menuDimensions()
+	if !p.In(r) || p.Y < r.Min.Y+padding || p.Y >= r.Max.Y-padding {
+		return -1
+	}
+	row := (p.Y - r.Min.Y - padding) / rowHeight
+	if row >= count {
+		return -1
+	}
+	return row
 }
 
 func (g *Game) updateMenu() bool {
 	p := g.pointer
 	left := inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft)
 	right := inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight)
-	if p.Y < topHeight && (left || right || g.menu >= 0) {
+	if left || right || g.menu >= 0 {
 		for i := range menus {
-			if p.X >= menuX(i) && p.X < menuX(i)+menuWidth(i) {
+			if p.In(g.menuTitleRect(i)) {
 				if g.menu < 0 {
 					g.cancelGesture()
 				}
@@ -126,16 +165,16 @@ func (g *Game) updateMenu() bool {
 	var chosen *MenuItem
 	if g.submenu >= 0 && p.In(g.subRect()) {
 		r := g.subRect()
-		row := (p.Y - r.Min.Y - 2) / menuRowHeight
 		items := menus[g.menu].Items[g.submenu].Children
+		row := g.menuRowAt(r, p, len(items))
 		if row >= 0 && row < len(items) {
 			chosen = &items[row]
 		}
 	}
 	if chosen == nil && p.In(g.menuRect()) {
 		r := g.menuRect()
-		row := (p.Y - r.Min.Y - 2) / menuRowHeight
 		items := menus[g.menu].Items
+		row := g.menuRowAt(r, p, len(items))
 		if row >= 0 && row < len(items) {
 			g.menuHover = row
 			if len(items[row].Children) > 0 {
@@ -161,6 +200,10 @@ func (g *Game) updateMenu() bool {
 	return true
 }
 func (g *Game) drawMenu(dst *image.RGBA) {
+	if g.Modern {
+		g.drawModernMenu(dst)
+		return
+	}
 	r := g.menuRect()
 	g.drawMenuPanel(dst, r, menus[g.menu].Items, true)
 	if g.submenu >= 0 {
@@ -169,6 +212,8 @@ func (g *Game) drawMenu(dst *image.RGBA) {
 }
 func (g *Game) checked(action string) bool {
 	switch action {
+	case "interface":
+		return !g.Modern
 	case "cycle":
 		return g.Cycle
 	case "multicycle":
@@ -452,6 +497,8 @@ func (g *Game) action(a string) {
 		g.PanY = 0
 	case "show-tools":
 		g.ShowTools = !g.ShowTools
+	case "interface":
+		g.setModern(!g.Modern)
 	case "coords":
 		g.ShowCoords = !g.ShowCoords
 	case "show-grid":

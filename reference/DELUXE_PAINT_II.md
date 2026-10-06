@@ -1,26 +1,28 @@
-# Référence Deluxe Paint II pour Pixeluxe
+# Deluxe Paint II reference for Pixeluxe
 
-## Sources et extraction
+## Sources and extraction
 
-Référence principale : le disque fourni dans `previous/Deluxe_Paint_II_1987_Electronic_Arts_PAL.adf`. Image de 901 120 octets, système de fichiers Amiga OFS `DOS/0`, volume `DPaint`, racine au bloc 880. SHA-256 : `a519c2be8d89765d7198b908bdc7797f9c00071d4dedfdc03db31df4b50ff9a3`.
+The main reference is the supplied disk in `previous/Deluxe_Paint_II_1987_Electronic_Arts_PAL.adf`: a 901,120-byte image using the Amiga OFS `DOS/0` filesystem, volume `DPaint`, with its root at block 880. SHA-256: `a519c2be8d89765d7198b908bdc7797f9c00071d4dedfdc03db31df4b50ff9a3`.
 
-Le programme extrait `adf/dpaint` contient l'identification « Deluxe Paint - Version 2.0P », copyright 1986–1987 Daniel Silva et Electronic Arts. Il mesure 191 428 octets ; SHA-256 `b775e59d9fdf9c6038be3383f10781b4b065b3d4b301d7907629781bb4b64581`. La chaîne `Release 2.48` existe également, mais ne doit pas être confondue avec le numéro affiché du logiciel.
+The extracted `adf/dpaint` program identifies itself as “Deluxe Paint - Version 2.0P”, copyright 1986–1987 Daniel Silva and Electronic Arts. It is 191,428 bytes; SHA-256: `b775e59d9fdf9c6038be3383f10781b4b065b3d4b301d7907629781bb4b64581`. The string `Release 2.48` also appears but should not be confused with the program's displayed version.
 
-Extraction reproductible avec le programme Go standard du dépôt :
+Extraction is reproducible with the repository's standard Go utility:
 
 ```sh
 go run cmd/adfextract/main.go previous/Deluxe_Paint_II_1987_Electronic_Arts_PAL.adf reference/adf
 ```
 
-Le programme vérifie les sommes de contrôle des blocs OFS, la taille des fichiers et l'absence de cycles dans les chaînes. Toutes les entrées du disque ont été extraites. `adf/` contient aussi les commandes Workbench, périphériques et bibliothèques du disque pour permettre l'inspection ; ils ne sont pas nécessaires au moteur Go.
+The utility validates OFS block checksums, file sizes, and the absence of cycles in file chains. All disk entries were extracted. `adf/` also contains the disk's Workbench commands, devices, and libraries for inspection; they are not needed by the Go application.
 
-Source primaire complémentaire : [manuel Electronic Arts, DeluxePaint II](https://d1yx3ys82bpsa0.cloudfront.net/atchm/documents/DeluxePaint_II_manual.pdf), copie locale `DeluxePaint_II_manual.pdf`, 152 pages. La pagination imprimée diffère de celle du PDF. Figure 1.1, page imprimée 1.5, correspond à la page PDF 25 ; la section de référence commence page PDF 105. `manual-toolbox.png` présente la figure et sa légende. Les données extraites du binaire font autorité lorsqu'elles diffèrent du manuel.
+An additional primary source is the [Electronic Arts DeluxePaint II manual](https://d1yx3ys82bpsa0.cloudfront.net/atchm/documents/DeluxePaint_II_manual.pdf), available in the local inspection workspace as `DeluxePaint_II_manual.pdf`, with 152 pages. Printed page numbers differ from PDF page numbers. Figure 1.1 on printed page 1.5 corresponds to PDF page 25; the reference section starts on PDF page 105. `manual-toolbox.png` shows the figure and its caption. Data extracted from the executable takes precedence when it differs from the manual.
 
-## Interface confirmée
+Reference extracts, JSON inspection reports, previews, and the downloaded manual are generated local artifacts and are excluded from Git. The original ADF, this document, and embedded runtime assets in `assets/` are tracked.
 
-Le panneau se trouve à droite de la surface de peinture. En haut : dix brosses prédéfinies, quatre rondes, quatre carrées et deux pointillées. Puis deux colonnes d'outils, rangées de haut en bas :
+## Confirmed interface
 
-| Gauche | Droite |
+The panel sits to the right of the painting area. At the top are ten preset brushes: four round, four square, and two dotted. Below them are two columns of tools, ordered from top to bottom:
+
+| Left | Right |
 |---|---|
 | Dotted Freehand | Continuous Freehand |
 | Straight Line | Curve |
@@ -32,48 +34,48 @@ Le panneau se trouve à droite de la surface de peinture. En haut : dix brosses 
 | Magnify | Zoom |
 | UNDO | CLR |
 
-Sous ces outils : indicateur circulaire de couleur de premier plan sur la couleur de fond, puis palette 32 couleurs, quatre colonnes sur huit lignes. Le bouton gauche peint et sélectionne la couleur de premier plan ; le bouton droit peint et sélectionne la couleur de fond. Le clic droit sur l'indicateur ouvre la palette ; sur une brosse prédéfinie, il permet d'en régler la taille.
+Below the tools are a circular foreground indicator over the background color and a 32-color palette arranged in four columns and eight rows. The left button paints and selects the foreground color; the right button paints and selects the background color. Right-clicking the indicator opens the palette; right-clicking a preset brush adjusts its size.
 
-Les menus sont accessibles en maintenant le bouton droit en haut de l'écran ; ils s'ouvrent au passage de la souris, les sous-menus s'étendent à droite et la commande est choisie au relâchement. Au repos, la barre affiche le mode courant, éventuellement `S` pour le stencil, `B` pour le fond fixé, les coordonnées ou les angles de perspective. F9 masque la barre et F10 masque la barre et le panneau.
+Menus are accessed by holding the right button at the top of the screen. They open as the pointer passes over them, submenus extend to the right, and commands are selected on release. When idle, the bar shows the current mode, possibly `S` for the stencil, `B` for a fixed background, coordinates, or perspective angles. F9 hides the bar; F10 hides both the bar and panel.
 
 ## Menus
 
-Ordre confirmé : **Picture, Brush, Mode, Effects, Font, Prefs**. Les libellés suivants proviennent du binaire ou du manuel primaire ; les raccourcis sensibles à la casse sont conservés.
+Confirmed order: **Picture, Brush, Mode, Effects, Font, Prefs**. The following labels come from the executable or primary manual; case-sensitive shortcuts are preserved.
 
-- **Picture** : Load, Save, Delete, Print ; Color Control → Palette (`p`), Use Brush Palette, Restore Palette, Default Palette, Cycle (`TAB`), Bg → Fg, Bg ↔ Fg, Remap ; Spare → Swap (`j`), Copy To Spare, Merge in front, Merge in back, Delete this Page ; Page Size, Show Page (`S`), Screen Format, Quit, About.
-- **Brush** : Load, Save, Delete ; Size → Stretch (`Z`), Halve (`h`), Double (`H`), Double Horiz, Double Vert ; Flip → Horiz (`x`), Vert (`y`) ; Rotate → 90 Degrees (`z`), Any Angle, Shear ; Change Color → Bg → Fg, Bg ↔ Fg, Remap ; Bend → Horiz, Vert ; Handle → Center, Corner.
-- **Mode** : Matte (`F1`), Color (`F2`), Replc (`F3`), Smear (`F4`), Shade (`F5`), Blend (`F6`), Cycle (`F7`), Smooth (`F8`).
-- **Effects** : Stencil → Make, Remake, Lock FG, Reverse, On/Off, Free, Load, Save, Delete ; Background → Fix, Off ; Perspective → Do, FillScreen, Reset, Center, Anti-Alias (None, Low, High), Rotation (Absolute, Relative).
-- **Font** : Style → Bold, Italic, Underln ; Load Font Dir, puis les familles et tailles chargées depuis le disque.
-- **Prefs** : Coords, Fast FB, MultiCycle, Be Square, Workbench, ExclBrush.
+- **Picture**: Load, Save, Delete, Print; Color Control → Palette (`p`), Use Brush Palette, Restore Palette, Default Palette, Cycle (`TAB`), Bg → Fg, Bg ↔ Fg, Remap; Spare → Swap (`j`), Copy To Spare, Merge in front, Merge in back, Delete this Page; Page Size, Show Page (`S`), Screen Format, Quit, About.
+- **Brush**: Load, Save, Delete; Size → Stretch (`Z`), Halve (`h`), Double (`H`), Double Horiz, Double Vert; Flip → Horiz (`x`), Vert (`y`); Rotate → 90 Degrees (`z`), Any Angle, Shear; Change Color → Bg → Fg, Bg ↔ Fg, Remap; Bend → Horiz, Vert; Handle → Center, Corner.
+- **Mode**: Matte (`F1`), Color (`F2`), Replc (`F3`), Smear (`F4`), Shade (`F5`), Blend (`F6`), Cycle (`F7`), Smooth (`F8`).
+- **Effects**: Stencil → Make, Remake, Lock FG, Reverse, On/Off, Free, Load, Save, Delete; Background → Fix, Off; Perspective → Do, FillScreen, Reset, Center, Anti-Alias (None, Low, High), Rotation (Absolute, Relative).
+- **Font**: Style → Bold, Italic, Underln; Load Font Dir, followed by families and sizes loaded from disk.
+- **Prefs**: Coords, Fast FB, MultiCycle, Be Square, Workbench, ExclBrush.
 
-Le fond fixé par **Background → Fix** est une copie de l'image courante : les ajouts se dessinent dessus, tandis que **CLR** et la peinture au bouton droit restaurent le fond dans les zones effacées. **Off** libère cette copie et rétablit l'effacement normal de toute la page. **Stencil → Lock FG** protège les zones peintes depuis Fix, indépendamment de leurs couleurs (manuel, pages 4.17–4.18). Il ne faut donc pas assimiler le fond fixé à une simple couleur uniforme.
+The fixed background created by **Background → Fix** is a copy of the current picture. Additions are drawn over it, while **CLR** and right-button painting restore that background in erased areas. **Off** frees the copy and restores ordinary erasing across the page. **Stencil → Lock FG** protects areas painted since Fix regardless of their colors (manual, pages 4.17–4.18). The fixed background therefore cannot be represented as a single solid color.
 
-`dpaint-strings.txt` fournit les offsets des libellés, requêtes et autres chaînes utiles dans le binaire, notamment la plage `0x1c03e–0x1c379`. Les premiers noms Picture/Brush et les opérations Load/Save/Delete sont réutilisés depuis des chaînes de requêtes plutôt que répétés dans ce bloc.
+`dpaint-strings.txt` records offsets for labels, requesters, and other useful strings in the executable, including the range `0x1c03e–0x1c379`. The initial Picture/Brush labels and Load/Save/Delete operations reuse requester strings instead of repeating them in that block.
 
-## Raccourcis des outils
+## Tool shortcuts
 
-| Touche | Action |
+| Key | Action |
 |---|---|
-| `s`, `d`, `D` | Dessin pointillé, continu, continu avec brosse un pixel |
-| `v`, `q`, `f`, `F` | Ligne, courbe, remplissage, réglages de remplissage |
-| `r` / `R`, `c` / `C`, `e` / `E` | Rectangle, cercle, ellipse : contour / plein |
-| `b`, `B`, `t` | Capture brosse, précédente brosse capturée, texte |
+| `s`, `d`, `D` | Dotted, continuous, and one-pixel continuous freehand |
+| `v`, `q`, `f`, `F` | Line, curve, fill, fill settings |
+| `r` / `R`, `c` / `C`, `e` / `E` | Rectangle, circle, ellipse: outlined / filled |
+| `b`, `B`, `t` | Capture brush, previous captured brush, text |
 | `u`, `K` | Undo, clear |
-| `m`, `<`, `>` | Loupe, réduction/augmentation du zoom |
-| `g`, `G`, `/` | Grille, grille alignée au pinceau, symétrie |
-| `,`, `.`, `[`, `]` | Pipette, brosse un pixel, couleur précédente/suivante de plage |
-| `-`, `=` | Réduire/agrandir la brosse |
-| `n`, flèches | Centrer sous le curseur, déplacer la page |
-| `a`, Espace | Répéter la dernière commande de menu, annuler l'opération en cours |
+| `m`, `<`, `>` | Magnifier, zoom out/in |
+| `g`, `G`, `/` | Grid, grid aligned to brush, symmetry |
+| `,`, `.`, `[`, `]` | Eyedropper, one-pixel brush, previous/next range color |
+| `-`, `=` | Smaller/larger brush |
+| `n`, arrow keys | Center under cursor, pan page |
+| `a`, Space | Repeat the last menu command, cancel the current operation |
 
-Shift contraint lignes et formes ; Ctrl laisse des traces lors du tracé de ces outils. Le manuel associe F8 au curseur, alors que ce disque associe explicitement F8 à Smooth : Pixeluxe doit suivre la version disque pour ce point. La touche du polygone n'est pas établie par la table fournie.
+Shift constrains lines and shapes; Ctrl leaves brush trails while drawing these tools. The manual assigns F8 to the cursor, but this disk explicitly assigns F8 to Smooth; Pixeluxe should follow the disk version here. The provided table does not establish a polygon shortcut.
 
-## Images et palettes originales
+## Original pictures and palettes
 
-Les quinze fichiers graphiques sont des IFF `FORM ILBM`, cinq plans, 32 couleurs ; compression brute ou ByteRun1. `asset-manifest.json` indique dimensions, palette, transparence, compression, coordonnées de poignée `GRAB`, cycles `CRNG` et SHA-256. `previews/` contient des PNG décodés pour comparaison visuelle. Les octets CMAP sont alignés sur quatre bits ; les aperçus rendent le niveau matériel 0–15 sur 0–255 par multiplication par 17.
+The fifteen graphical files are IFF `FORM ILBM` with five planes and 32 colors, using either uncompressed data or ByteRun1 compression. The inspection artifact `asset-manifest.json` records dimensions, palette, transparency, compression, `GRAB` handle coordinates, `CRNG` cycles, and SHA-256 hashes. `previews/` contains decoded PNG files for visual comparison. CMAP bytes align to four bits; previews map hardware levels 0–15 to 0–255 by multiplication by 17.
 
-| Fichier sous `adf/` | Dimensions |
+| File under `adf/` | Dimensions |
 |---|---|
 | Lo-Res/Seascape | 320 × 200 |
 | Lo-Res/StencilSet | 320 × 200 |
@@ -84,13 +86,13 @@ Les quinze fichiers graphiques sont des IFF `FORM ILBM`, cinq plans, 32 couleurs
 | Brush/Dolphin | 103 × 128 |
 | Brush/Pattern1 | 18 × 15 |
 | Brush/fireworks | 107 × 104 |
-| Brush/anim1, anim2, anim3 | 32 × 19 ; 83 × 65 ; 49 × 200 |
-| Brush/anim4, anim5, anim6 | 319 × 54 ; 81 × 70 ; 93 × 45 |
+| Brush/anim1, anim2, anim3 | 32 × 19; 83 × 65; 49 × 200 |
+| Brush/anim4, anim5, anim6 | 319 × 54; 81 × 70; 93 × 45 |
 
-Les répertoires Med-Res, Interlace et Hi-Res ne contiennent pas d'images sur ce disque. Les exemples Lo-Res ont été enregistrés avec un format 320 × 200 et un rapport de pixel 10:11 ; cela ne signifie pas que le mode PAL de l'application est limité à 200 lignes. Le binaire contient les hauteurs 200/400 et 256/512 pour NTSC/PAL, ainsi que le format 320 × 256 dans Building.
+The Med-Res, Interlace, and Hi-Res directories contain no pictures on this disk. Lo-Res examples were saved at 320 × 200 with a 10:11 pixel aspect ratio; this does not imply that the application's PAL mode is limited to 200 lines. The executable contains NTSC/PAL heights of 200/400 and 256/512, and Building uses the 320 × 256 format.
 
-## Fontes et limites
+## Fonts and research limits
 
-`fonts.json` contient les glyphes bitmap originaux, leurs largeurs, avances, crénages et lignes de base. Les planches sont dans `previews/fonts/`. Familles : ruby 8/12/15, opal 9/12, sapphire 14/19, diamond 12/20, garnet 9/16, emerald 17/20 et topaz 11. Les codes de caractères sont Amiga/Latin-1, généralement `0x20–0xff`.
+The inspection artifact `fonts.json` contains the original bitmap glyphs, widths, advances, kerning, and baselines. Font specimens are in `previews/fonts/`. Families: ruby 8/12/15, opal 9/12, sapphire 14/19, diamond 12/20, garnet 9/16, emerald 17/20, and topaz 11. Character codes are Amiga/Latin-1, generally `0x20–0xff`.
 
-Le programme ouvre `topaz.font` pour l'interface. La fonte système ROM 8 pixels n'est pas présente sur l'ADF ; topaz 11 est la seule variante disque. Le disque seul ne permet donc pas de récupérer directement la fonte de tous les menus, ni de prouver leurs couleurs ou leur placement pixel par pixel sans exécuter le logiciel avec un environnement Amiga approprié. L'ordre précis de certains items est reconstruit à partir du manuel et des chaînes ; aucune capture d'exécution de cet ADF n'a été prétendue. Les images et fontes extraites servent de référence à une réimplémentation native Go, sans émulation du binaire 68000.
+The original program opens `topaz.font` for its interface. The ROM's 8-pixel system font is absent from the ADF; topaz 11 is the only disk variant. The disk alone therefore cannot directly recover the font for every menu or prove its colors and exact pixel placement without running the software in a suitable Amiga environment. The precise order of some items is reconstructed from the manual and strings; no screenshot of this ADF running has been claimed. Extracted pictures and fonts provide the reference for a native Go reimplementation without emulating the 68000 executable. Pixeluxe's modern interface is an adaptation; its optional Classic view retains the original remake's compact layout.
