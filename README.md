@@ -103,7 +103,7 @@ Pixeluxe is a functional reimplementation with adapted interface and algorithms.
 - Perspective transforms the brush directly with X/Y/Z angles. It does not reproduce the interactive numeric-keypad grid, perspective center, FillScreen, or Deluxe Paint antialiasing options. Smear, Shade, Blend, and Smooth use adapted algorithms and may differ from the Amiga results.
 - The ROM's Topaz 8 system font is absent from the disk. The modern interface uses embedded Go fonts; Classic mode uses a compact bitmap replacement. The 14 drawing fonts come from the ADF. Pixeluxe's initial palette follows the Amiga 12-bit RGB grid but has not been confirmed as this version's exact startup palette.
 
-The original disk remains in [`previous/`](previous/). Extraction, confirmed facts, palettes, font specimens, and research limits are documented in [`reference/DELUXE_PAINT_II.md`](reference/DELUXE_PAINT_II.md), alongside the [primary Electronic Arts manual](https://d1yx3ys82bpsa0.cloudfront.net/atchm/documents/DeluxePaint_II_manual.pdf). Derived reference extracts and downloaded manuals are excluded from Git; embedded runtime assets and the source ADF are tracked.
+The original reference disk may be kept locally in `previous/`, which is excluded from Git and is not required to build or run Pixeluxe. Extraction, confirmed facts, palettes, font specimens, and research limits are documented in [`reference/DELUXE_PAINT_II.md`](reference/DELUXE_PAINT_II.md), alongside the [primary Electronic Arts manual](https://d1yx3ys82bpsa0.cloudfront.net/atchm/documents/DeluxePaint_II_manual.pdf). Reference disks, derived extracts, and downloaded manuals stay outside version control; embedded runtime assets remain tracked.
 
 ## Validation and screenshots
 

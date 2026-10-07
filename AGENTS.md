@@ -29,8 +29,9 @@ keyboard shortcuts, image formats, and undo behavior when changing the interface
 
 - Use the local `main` branch and keep changes in focused commits.
 - Do not configure a remote, push, or publish unless the user requests it.
-- Track source files, embedded runtime assets, documentation screenshots, and the
-  original reference disk in `previous/`.
+- Track source files, embedded runtime assets, and documentation screenshots.
+- Keep `previous/` local and ignored. Never commit reference disk images or
+  reintroduce their removed history.
 - Keep generated executables and app bundles in ignored `bin/`.
 - Do not commit reference extracts, downloaded manuals, temporary files, or
   derived reference previews. They are reproducible inspection artifacts; the

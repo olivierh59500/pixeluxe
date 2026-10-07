@@ -5,7 +5,8 @@
 /untitled.iff
 /untitled.png
 
-# Local reference extracts can be reproduced from the tracked source disk.
+# Reference disks and their derived inspection artifacts stay local.
+/previous/
 /reference/adf/
 /reference/previews/
 /reference/asset-manifest.json

@@ -2,7 +2,7 @@
 
 ## Sources and extraction
 
-The main reference is the supplied disk in `previous/Deluxe_Paint_II_1987_Electronic_Arts_PAL.adf`: a 901,120-byte image using the Amiga OFS `DOS/0` filesystem, volume `DPaint`, with its root at block 880. SHA-256: `a519c2be8d89765d7198b908bdc7797f9c00071d4dedfdc03db31df4b50ff9a3`.
+The main reference is the locally supplied disk in `previous/Deluxe_Paint_II_1987_Electronic_Arts_PAL.adf`: a 901,120-byte image using the Amiga OFS `DOS/0` filesystem, volume `DPaint`, with its root at block 880. SHA-256: `a519c2be8d89765d7198b908bdc7797f9c00071d4dedfdc03db31df4b50ff9a3`. The disk is intentionally excluded from Git; these inspection steps require a local copy.
 
 The extracted `adf/dpaint` program identifies itself as “Deluxe Paint - Version 2.0P”, copyright 1986–1987 Daniel Silva and Electronic Arts. It is 191,428 bytes; SHA-256: `b775e59d9fdf9c6038be3383f10781b4b065b3d4b301d7907629781bb4b64581`. The string `Release 2.48` also appears but should not be confused with the program's displayed version.
 
